@@ -1,5 +1,13 @@
 ﻿using Boarder.Models;
+using Microsoft.VisualBasic;
+using System;
 using System.Net.NetworkInformation;
+using System.Text.RegularExpressions;
+using static Boarder.Tests.Helpers.TestData;
+using static Boarder.Tests.IssueTests;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using Boarder.Tests.Helpers;
+using Task = Boarder.Models.Task;
 
 
 namespace Boarder.Tests
@@ -8,76 +16,61 @@ namespace Boarder.Tests
     public class IssueTests
     {
         [TestMethod]
-        public void Issue_Constructor_AssignsValuesCorrectly()
+        public void Issue_Constructor_Assigns_Values_Correctly()
         {
-            // Arrange
-            string title = "Test Issue";
-            string description = "Test Description";
-            DateTime dueDate = DateTime.Today.AddDays(2);
-            Status status = Status.Open;
             // Act
-            Issue issue = new Issue(title, description, dueDate);
+            Issue issue = new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
 
             // Assert
-            Assert.AreEqual(title, issue.Title);
-            Assert.AreEqual(description, issue.Description);
-            Assert.AreEqual(status, issue.Status);
+            Assert.AreEqual(BoardItemData.ValidName, issue.Title);
+            Assert.AreEqual(IssueData.ValidDescription, issue.Description);
+            Assert.AreEqual(IssueData.InitialStatus, issue.Status);
         }
+
         [TestMethod]
-        public void Issue_Constructor_AssignsNoDescription_when_Null()
+        public void Issue_Constructor_Assigns_NoDescription_when_Null()
         {
-            // Arrange
-            string title = "Test Issue";
-            DateTime dueDate = DateTime.Today.AddDays(2);
-            Status status = Status.Open;
+
             // Act
-            Issue issue = new Issue(title, null, dueDate);
+            Issue issue = new(BoardItemData.ValidName, null, BoardItemData.ValidDate);
 
             // Assert
-            Assert.AreEqual(title, issue.Title);
+            Assert.AreEqual(BoardItemData.ValidName, issue.Title);
             Assert.AreEqual("No desciption", issue.Description);
-            Assert.AreEqual(status, issue.Status);
+            Assert.AreEqual(IssueData.InitialStatus, issue.Status);
         }
+
         [TestMethod]
-        public void Issue_Constructor_Throw_when_Title_is_Invalid()
+        public void Issue_Constructor_ThrowsException_when_Title_is_Null()
         {
             // Arrange
-            string title = "";
-            DateTime dueDate = DateTime.Today.AddDays(2);
-            Status status = Status.Open;
+            string title = null;
             // Act
-            Issue issue = new Issue(title, null, dueDate);
 
             // Assert
-            Assert.ThrowsException<ArgumentException>(() =>
-                new Issue(title, "Test Description", dueDate));
+            Assert.ThrowsException<ArgumentException>(() => new Issue(title, IssueData.ValidDescription, BoardItemData.ValidDate));
         }
 
         [TestMethod]
-        public void Issue_AdvanceStatus_SetsStatusToVerified()
+        public void Issue_Constructor_ThrowsException_when_Title_is_Invalid()
         {
-            // Arrange
-            string title = "Bug Fix";
-            string description = "Fixes UI bug";
-            DateTime dueDate = DateTime.Today.AddDays(2);
-
-            // Act
-            Issue issue = new Issue(title, description, dueDate);
-            issue.AdvanceStatus();
-
             // Assert
-            Assert.AreEqual(Status.Verified, issue.Status);
+            Assert.ThrowsException<ArgumentException>(() => new Issue(BoardItemData.InvalidNameMin, IssueData.ValidDescription, BoardItemData.ValidDate));
         }
 
         [TestMethod]
-        public void Issue_AdvanceStatus_Should_RemaAtVerified()
+        public void Issue_Constructor_ThrowsException_when_DueDate_Invalid()
         {
-            // Arrange
-            Issue issue = new Issue("Bug Fix", "Fixes UI bug", DateTime.Today.AddDays(2));
+            // Assert
+            Assert.ThrowsException<ArgumentException>(() => new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.InvalidDate));
+        }
+
+        [TestMethod]
+        public void Issue_AdvanceStatus_Sets_Status_Verified()
+        {
 
             // Act
-            issue.AdvanceStatus();
-            issue.AdvanceStatus();
+            Issue issue = new(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
             issue.AdvanceStatus();
 
             // Assert
@@ -85,10 +78,25 @@ namespace Boarder.Tests
         }
 
         [TestMethod]
-        public void Issue_ReverseStatus_SetsStatusToOpen()
+        public void Issue_AdvanceStatus_Should_Remain_Verified()
         {
             // Arrange
-            Issue issue = new Issue("Bug Fix", "Fixes UI bug", DateTime.Today.AddDays(2));
+            Issue issue = new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
+
+            // Act
+            issue.AdvanceStatus();
+            issue.AdvanceStatus();
+            issue.AdvanceStatus();
+
+            // Assert
+            Assert.AreEqual(IssueData.EndStatus, issue.Status);
+        }
+
+        [TestMethod]
+        public void Issue_ReverseStatus_Sets_Status_Open()
+        {
+            // Arrange
+            Issue issue = new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
             // Act
             issue.AdvanceStatus();
             issue.RevertStatus();
@@ -98,10 +106,10 @@ namespace Boarder.Tests
         }
 
         [TestMethod]
-        public void Issue_ReverseStatus_Should_RemaAtOpen()
+        public void Issue_ReverseStatus_Should_Remain_Open()
         {
             // Arrange
-            Issue issue = new Issue("Bug Fix", "Fixes UI bug", DateTime.Today.AddDays(2));
+            Issue issue = new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
             // Act
             issue.RevertStatus();
             issue.RevertStatus();
@@ -115,14 +123,76 @@ namespace Boarder.Tests
         {
             const string DateFormat = "dd-MM-yyyy";
             // Arrange
-            string result = $"Issue: 'Bug Fix', [Open|{(DateTime.Today.AddDays(2)).ToString(DateFormat)}] Description: Fixes UI bug";
+            string result = $"Issue: '{BoardItemData.ValidName}', [Open|{(BoardItemData.ValidDate).ToString(DateFormat)}] Description: {IssueData.ValidDescription}";
 
             // Act
-            Issue issue = new Issue("Bug Fix", "Fixes UI bug", DateTime.Today.AddDays(2));
+            Issue issue = new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
 
             // Assert
             Assert.AreEqual(result, issue.ViewInfo());
         }
+
+        [TestMethod]
+        public void Issue_Should_Change_Title_When_Valid_Title()
+        {
+            // Arrange
+            Issue issue = new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
+            string newTitle = new string(BoardItemData.ValidName + 1);
+
+            // Act
+            issue.Title = newTitle;
+
+            // Assert
+            Assert.AreEqual(newTitle, issue.Title);
+        }
+        [TestMethod]
+        public void Issue_Should_Change_DueDate_When_Valid_DueDate()
+        {
+            // Arrange
+            Issue issue = new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
+            DateTime newDate = BoardItemData.ValidDate.AddDays(1);
+
+            // Act
+            issue.DueDate = newDate;
+
+            // Assert
+            Assert.AreEqual(newDate, issue.DueDate);
+        }
+
+
+        [TestMethod]
+        public void Issue_Should_Show_History_when_View_History_is_Called()
+        {
+            const string DateFormat = "dd-MM-yyyy";
+            string expectedStr = $"Created Issue: Issue: '{BoardItemData.ValidName}', [{IssueData.InitialStatus}|{BoardItemData.ValidDate.ToString(DateFormat)}] Description: {IssueData.ValidDescription}. Description: {IssueData.ValidDescription}";
+            // Arrange
+            Issue issue = new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
+            // Act
+
+            // Assert
+            Assert.AreEqual(expectedStr, AdjustTestDataHelper.RemoveTimestamp(issue.ViewHistory()));
+        }
+
+
+
+
+
+        [TestMethod]
+        public void Issue_Constructor_Should_Create_Initial_Create_Log()
+        {
+            const string DateFormat = "dd-MM-yyyy";
+            // Arrange
+            string result = $"Created Issue: Issue: '{BoardItemData.ValidName}', [{IssueData.InitialStatus}|{BoardItemData.ValidDate.ToString(DateFormat)}] Description: {IssueData.ValidDescription}. Description: {IssueData.ValidDescription}";
+
+            // Act
+            Issue issue = new Issue(BoardItemData.ValidName, IssueData.ValidDescription, BoardItemData.ValidDate);
+
+            // Assert
+            Assert.AreEqual(result, AdjustTestDataHelper.RemoveTimestamp(issue.ViewHistory()));
+        }
+
+
+
 
     }
 }
