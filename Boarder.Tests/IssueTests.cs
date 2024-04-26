@@ -11,12 +11,12 @@ namespace Boarder.Tests
         public void Issue_Constructor_AssignsValuesCorrectly()
         {
             // Arrange
-            string title = "Test Task";
+            string title = "Test Issue";
             string description = "Test Description";
             DateTime dueDate = DateTime.Today.AddDays(2);
             Status status = Status.Open;
             // Act
-            Issue issue = new Issue(title,description, dueDate);
+            Issue issue = new Issue(title, description, dueDate);
 
             // Assert
             Assert.AreEqual(title, issue.Title);
@@ -27,7 +27,7 @@ namespace Boarder.Tests
         public void Issue_Constructor_AssignsNoDescription_when_Null()
         {
             // Arrange
-            string title = "Test Task";
+            string title = "Test Issue";
             DateTime dueDate = DateTime.Today.AddDays(2);
             Status status = Status.Open;
             // Act
@@ -37,6 +37,20 @@ namespace Boarder.Tests
             Assert.AreEqual(title, issue.Title);
             Assert.AreEqual("No desciption", issue.Description);
             Assert.AreEqual(status, issue.Status);
+        }
+        [TestMethod]
+        public void Issue_Constructor_Throw_when_Title_is_Invalid()
+        {
+            // Arrange
+            string title = "";
+            DateTime dueDate = DateTime.Today.AddDays(2);
+            Status status = Status.Open;
+            // Act
+            Issue issue = new Issue(title, null, dueDate);
+
+            // Assert
+            Assert.ThrowsException<ArgumentException>(() =>
+                new Issue(title, "Test Description", dueDate));
         }
 
         [TestMethod]
